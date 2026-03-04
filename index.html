@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fossick AI — Search for Gold in Foundation Models</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Spectral:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f0e0b;
+      --bg-2:      #16140f;
+      --bg-card:   #1b1810;
+      --gold:      #c9963a;
+      --gold-light:#e0b96a;
+      --gold-dim:  #7a5820;
+      --cream:     #ede4cc;
+      --cream-dim: #a89b7e;
+      --line:      rgba(201,150,58,0.18);
+      --line-soft: rgba(201,150,58,0.07);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: 'Spectral', Georgia, serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Topographic background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 15% 20%, rgba(201,150,58,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 85% 75%, rgba(201,150,58,0.03) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .topo-svg {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35;
+    }
+
+    /* Layout */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* Header */
+    header {
+      padding: 6rem 0 3rem;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 300;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--cream);
+      opacity: 0;
+      animation: fadeUp 0.9s ease 0.2s forwards;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--gold-light);
+    }
+
+    .byline {
+      margin-top: 2rem;
+      font-size: 1.1rem;
+      color: var(--cream-dim);
+      letter-spacing: 0.04em;
+      opacity: 0;
+      animation: fadeUp 0.9s ease 0.4s forwards;
+    }
+
+    .byline strong {
+      color: var(--cream);
+      font-weight: 400;
+    }
+
+    /* Intro */
+    .intro {
+      padding: 3rem 0 2.5rem;
+      opacity: 0;
+      animation: fadeUp 0.9s ease 0.5s forwards;
+    }
+
+    .intro p {
+      font-size: 1.3rem;
+      font-weight: 300;
+      color: var(--cream-dim);
+      max-width: 64ch;
+      line-height: 1.85;
+    }
+
+    .intro p strong {
+      color: var(--cream);
+      font-weight: 400;
+    }
+
+    /* Section labels */
+    .section-label {
+      font-family: 'Spectral', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .apply-label {
+      font-size: 1.4rem;
+      letter-spacing: 0.15em;
+      color: var(--gold);
+      margin-bottom: 2rem;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    /* Project section */
+    .projects-section {
+      padding: 0 0 2rem;
+      opacity: 0;
+      animation: fadeUp 0.9s ease 0.65s forwards;
+    }
+
+    .project-cluster {
+      margin-bottom: 3rem;
+    }
+
+    .cluster-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--cream);
+      margin-bottom: 1.2rem;
+      letter-spacing: 0.01em;
+    }
+
+    .project-list {
+      list-style: none;
+      border-left: 1px solid var(--line);
+      padding-left: 0;
+    }
+
+    .project-item {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      padding: 1.2rem 0 1.2rem 1.6rem;
+      border-bottom: 1px solid var(--line-soft);
+      transition: border-color 0.2s;
+    }
+
+    .project-item:last-child { border-bottom: none; }
+
+    .project-item:hover { border-color: var(--line); }
+
+    .project-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--gold-dim);
+      flex-shrink: 0;
+      margin-top: 0.5em;
+      transition: background 0.2s;
+    }
+
+    .project-item:hover .project-dot {
+      background: var(--gold);
+    }
+
+    .project-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--cream);
+      flex: 1;
+    }
+
+    .project-links {
+      display: flex;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .tag {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border: 1px solid var(--gold-dim);
+      color: var(--gold-dim);
+      text-decoration: none;
+      border-radius: 2px;
+      transition: all 0.18s;
+    }
+
+    .tag:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(201, 150, 58, 0.06);
+    }
+
+    /* Apply section */
+    .apply-section {
+      padding: 1rem 0 5rem;
+      opacity: 0;
+      animation: fadeUp 0.9s ease 0.8s forwards;
+    }
+
+    .apply-card {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      padding: 3rem 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .apply-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0.5;
+    }
+
+    .apply-card p {
+      font-size: 1.25rem;
+      color: var(--cream-dim);
+      margin-bottom: 1.8rem;
+      max-width: 58ch;
+      line-height: 1.85;
+    }
+
+    .apply-card p em {
+      color: var(--cream);
+      font-style: italic;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      font-family: 'Spectral', serif;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 1rem 2.4rem;
+      text-decoration: none;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: var(--bg);
+      font-weight: 400;
+    }
+
+    .btn-primary:hover {
+      background: var(--gold-light);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--line);
+      color: var(--cream-dim);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--gold-dim);
+      color: var(--cream);
+    }
+
+    /* Footer */
+    footer {
+      padding: 2rem 0;
+      border-top: 1px solid var(--line-soft);
+      position: relative;
+      z-index: 1;
+    }
+
+    footer p {
+      font-size: 0.75rem;
+      color: var(--gold-dim);
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive */
+    @media (max-width: 560px) {
+      header { padding: 4rem 0 2.5rem; }
+      .project-item { flex-direction: column; gap: 0.5rem; }
+      .apply-card { padding: 1.5rem 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topographic line texture -->
+  <svg class="topo-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <style>
+        .tl { fill: none; stroke: #c9963a; stroke-width: 0.6; }
+      </style>
+    </defs>
+    <!-- Contour rings, bottom-right cluster -->
+    <ellipse class="tl" cx="92%" cy="78%" rx="320" ry="180" />
+    <ellipse class="tl" cx="92%" cy="78%" rx="260" ry="145" />
+    <ellipse class="tl" cx="92%" cy="78%" rx="195" ry="108" />
+    <ellipse class="tl" cx="92%" cy="78%" rx="128" ry="70" />
+    <ellipse class="tl" cx="92%" cy="78%" rx="64"  ry="35"  />
+    <!-- Contour rings, top-left cluster -->
+    <ellipse class="tl" cx="8%"  cy="22%" rx="240" ry="160" />
+    <ellipse class="tl" cx="8%"  cy="22%" rx="180" ry="120" />
+    <ellipse class="tl" cx="8%"  cy="22%" rx="120" ry="80"  />
+    <ellipse class="tl" cx="8%"  cy="22%" rx="60"  ry="40"  />
+  </svg>
+
+  <div class="container">
+
+    <header>
+      <h1>Fossick AI<br /><em>Search for gold in foundation models</em></h1>
+      <p class="byline">
+        <a href="https://ariholtzman.com/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--gold-dim);"><strong>Ari Holtzman</strong></a>
+        &amp;
+        <a href="https://chenhaot.com" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--gold-dim);"><strong>Chenhao Tan</strong></a>
+      </p>
+    </header>
+
+    <div class="intro">
+      <p>
+        We are exploring a new form of research collaboration. Our goal is to uncover
+        the <strong>hidden landscape of knowledge</strong> encoded by large generative models —
+        finding structure, boundaries, and surprising deposits in the vast terrain of foundation models.
+      </p>
+    </div>
+
+    <div class="projects-section">
+      <div class="section-label apply-label">Active Projects</div>
+
+      <div class="project-cluster">
+        <h2 class="cluster-title">Sciences of LLMs &amp; Foundation Models</h2>
+        <ul class="project-list">
+          <li class="project-item">
+            <span class="project-dot"></span>
+            <span class="project-name">Where is "Washing Machine" Stored in LLMs?</span>
+            <span class="project-links">
+              <a class="tag" href="https://hypogenic.ai/ideahub/idea/JwFgKYiEHGDlCtEAKbp9" target="_blank">Idea</a>
+              <a class="tag" href="https://github.com/Hypogenic-AI/llm-washing-machine-claude" target="_blank">Github</a>
+              <a class="tag" href="https://github.com/Hypogenic-AI/llm-washing-machine-claude/issues/1" target="_blank">Roadmap</a>
+            </span>
+          </li>
+          <li class="project-item">
+            <span class="project-dot"></span>
+            <span class="project-name">Isolating Knowledge Edits</span>
+            <span class="project-links">
+              <a class="tag" href="https://hypogenic.ai/ideahub/idea/ctUYrQPJ88FSwVmKMDao" target="_blank">Idea</a>
+              <a class="tag" href="https://github.com/Hypogenic-AI/isolate-knowledge-updates-claude" target="_blank">Github</a>
+              <a class="tag" href="https://github.com/Hypogenic-AI/isolate-knowledge-updates-claude/issues/1" target="_blank">Roadmap</a>
+            </span>
+          </li>
+          <li class="project-item">
+            <span class="project-dot"></span>
+            <span class="project-name">Finetuning Resistant Benchmarks</span>
+            <span class="project-links">
+              <a class="tag" href="https://hypogenic.ai/ideahub/idea/XMu5uZXUuUig7I2khHhL" target="_blank">Idea</a>
+              <a class="tag" href="https://github.com/ChicagoHAI/finetuning-proof-datasets-claude" target="_blank">Github</a>
+              <a class="tag" href="https://github.com/ChicagoHAI/finetuning-proof-datasets-claude/issues/1" target="_blank">Roadmap</a>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="project-cluster">
+        <h2 class="cluster-title">Automated Research</h2>
+        <ul class="project-list">
+          <li class="project-item">
+            <span class="project-dot"></span>
+            <span class="project-name">
+              NeuriCo
+              <span style="font-size:0.92rem; color: var(--cream-dim); font-style: italic;">
+                — automates research and powers our initial exploration
+              </span>
+            </span>
+            <span class="project-links">
+              <a class="tag" href="https://github.com/ChicagoHAI/NeuriCo/" target="_blank">Github</a>
+              <a class="tag" href="https://github.com/ChicagoHAI/idea-explorer/issues/53" target="_blank">Roadmap</a>
+            </span>
+          </li>
+          <li class="project-item">
+            <span class="project-dot"></span>
+            <span class="project-name">OpenAIReview</span>
+            <span class="project-links">
+              <a class="tag" href="https://github.com/ChicagoHAI/OpenAIReview" target="_blank">Github</a>
+              <a class="tag" href="https://github.com/ChicagoHAI/OpenAIReview/issues/23" target="_blank">Roadmap</a>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="apply-section">
+      <div class="section-label apply-label">Apply</div>
+      <div class="apply-card">
+        <p>
+          To apply, read through a project and its roadmap, then <em>tackle one item on the roadmap</em>
+          before submitting the application form. Selected contributors will be invited to a
+          regular meeting — Zoom or in person depending on location.
+        </p>
+        <p style="margin-bottom: 0.8rem;">
+          You are welcome to join our Discord server and discuss asynchronously while you explore.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://forms.gle/XaqE8qLBe9h6Fq1M9" target="_blank">Application Form</a>
+          <a class="btn btn-secondary" href="https://discord.gg/mSV7Npttwh" target="_blank">Discord Server</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>Fossick AI &nbsp;·&nbsp; hypogenic &nbsp;·&nbsp; 2026</p>
+  </footer>
+
+</body>
+</html>
